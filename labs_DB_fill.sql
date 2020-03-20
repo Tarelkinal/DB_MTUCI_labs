@@ -3207,3 +3207,5 @@ INSERT INTO teachers VALUES (DEFAULT, 'Вячеслав', 'Германович'
 INSERT INTO teachers VALUES (DEFAULT, 'Вячеслав', 'Ильич', 'Логин', 'loginwl@gggg.ru', '57879433445', NOW(), NOW());
 -- student_statuses fill
 INSERT INTO student_statuses VALUES (DEFAULT, 'активный'), (DEFAULT, 'отчислен'), (DEFAULT, 'академический отпуск');
+-- specializations fill
+INSERT INTO specializations VALUES (DEFAULT, 'БИН', 2, 'autumn'), (DEFAULT, 'БУТ', 2, 'spring'), (DEFAULT, 'ЗРС', 3, 'autumn');
