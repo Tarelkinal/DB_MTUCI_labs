@@ -302,6 +302,7 @@ INSERT INTO `students` (`id`, `first_name`, `second_name`, `last_name`, `email`,
 -- num_labs_spec_per_semesrt fill
 INSERT INTO num_labs_spec_per_semesrt VALUES (1, 1, 4) , (1, 2, 4), (2, 1, 6), (2, 2, 4), (3, 1, 8), (3, 2, 8), (3, 3, 4);  
 -- groups_students_teachers fill
+
 INSERT INTO groups_students_teachers (teacher_id, group_id, student_id) VALUES 	(5,6,125),
 																				(1,1,1),
 																				(1,1,2),
@@ -602,6 +603,10 @@ INSERT INTO groups_students_teachers (teacher_id, group_id, student_id) VALUES 	
 																				(1,11,298),
 																				(1,11,299),
 																				(1,11,300);
+																			
+UPDATE groups_students_teachers SET teacher_id = 2 WHERE student_id < 13;
+UPDATE groups_students_teachers SET teacher_id = 2 WHERE student_id > 38 AND student_id < 51;
+
 -- labs fill
 INSERT INTO `labs` (`id`, `name`, `description`, `created_at`, `updated_at`) VALUES (1, '31', 'Nemo fugiat mollitia id. Sit dolor totam suscipit provident maxime ex. Animi iste est eum laborum non alias. Et inventore officia possimus veritatis impedit.', '2008-07-26 15:26:16', '2012-11-07 13:51:48');
 INSERT INTO `labs` (`id`, `name`, `description`, `created_at`, `updated_at`) VALUES (2, '3', 'Numquam sit quos autem ea porro itaque totam quis. Aliquam adipisci tenetur quia vero eos voluptatem. Adipisci dolorum voluptas esse qui et debitis molestias facilis.', '1999-09-22 19:49:23', '1975-01-02 16:48:36');
@@ -3202,3 +3207,5 @@ INSERT INTO teachers VALUES (DEFAULT, 'Вячеслав', 'Германович'
 INSERT INTO teachers VALUES (DEFAULT, 'Вячеслав', 'Ильич', 'Логин', 'loginwl@gggg.ru', '57879433445', NOW(), NOW());
 -- student_statuses fill
 INSERT INTO student_statuses VALUES (DEFAULT, 'активный'), (DEFAULT, 'отчислен'), (DEFAULT, 'академический отпуск');
+-- specializations fill
+INSERT INTO specializations VALUES (DEFAULT, 'БИН', 2, 'autumn'), (DEFAULT, 'БУТ', 2, 'spring'), (DEFAULT, 'ЗРС', 3, 'autumn');

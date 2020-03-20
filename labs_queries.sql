@@ -19,20 +19,36 @@ SELECT
  WHERE alarm_status = 1 AND semestr_name  = semestr_name_now (); 
 
 
--- общая статистика успеваемости по группам
-SELECT DISTINCT 
--- gld.id AS group_id,
-	gld.name AS group_name,
-	COUNT(*) OVER(PARTITION BY gld.id) AS count_students,
-	SUM(IF(sp.alarm_status = 1, 1, 0)) OVER(PARTITION BY gld.id) AS problem_students_count,
-	ROUND((SUM(IF(sp.alarm_status = 1, 1, 0)) OVER(PARTITION BY gld.id) * 100 ) / (COUNT(*) OVER(PARTITION BY gld.id))) AS percents,
+-- общая статистика успеваемости по учителям
+SELECT DISTINCT
 	(SELECT last_name FROM teachers t WHERE t.id = gst.teacher_id) AS teacher_last_name,
+	COUNT(*) OVER(PARTITION BY gst.teacher_id ) AS count_students,
+	SUM(IF(sp.alarm_status = 1, 1, 0)) OVER(PARTITION BY gst.teacher_id) AS count_problem_students,
+	ROUND((SUM(IF(sp.alarm_status = 1, 1, 0)) OVER(PARTITION BY gst.teacher_id) * 100 ) / (COUNT(*) OVER(PARTITION BY gst.teacher_id))) AS percents,
 	semestr_name_now()
   FROM group_live_data gld 
   JOIN groups_students_teachers gst ON gld.id = gst.group_id 
   LEFT JOIN students_progress sp ON gst.student_id = sp.st_id
  WHERE gld.group_status = 'active'
  ORDER BY percents DESC;
+
+-- общая статистика успеваемости по группам
+SELECT DISTINCT 
+	gld.name AS group_name,
+	COUNT(*) OVER(PARTITION BY gld.id) AS count_students,
+	SUM(IF(sp.alarm_status = 1, 1, 0)) OVER(PARTITION BY gld.id) AS problem_students_count,
+	ROUND((SUM(IF(sp.alarm_status = 1, 1, 0)) OVER(PARTITION BY gld.id) * 100 ) / (COUNT(*) OVER(PARTITION BY gld.id))) AS percents,
+	IF(FIRST_VALUE(t.last_name) OVER(PARTITION BY gld.id) =  LAST_VALUE(t.last_name) OVER(PARTITION BY gld.id),
+	FIRST_VALUE(t.last_name) OVER(PARTITION BY gld.id),
+	CONCAT(FIRST_VALUE(t.last_name) OVER(PARTITION BY gld.id),', ', LAST_VALUE(t.last_name) OVER(PARTITION BY gld.id))) AS teachers_last_name,
+	semestr_name_now()
+  FROM group_live_data gld 
+  JOIN groups_students_teachers gst ON gld.id = gst.group_id 
+  LEFT JOIN students_progress sp ON gst.student_id = sp.st_id
+  JOIN teachers t ON gst.teacher_id = t.id 
+ WHERE gld.group_status = 'active'
+ ORDER BY percents DESC;
+
 
 -- показатели по группам в динамике
 CREATE TABLE groups_statistics_evolution (
@@ -62,7 +78,7 @@ SELECT DISTINCT
 
 SELECT * FROM groups_statistics_evolution;
 
--- топ 3 самых сложных работы в итории (не в этом семестре)
+-- топ 3 самых сложных работы в итории (без текущего семестра)
 SELECT DISTINCT 
 	(SELECT name FROM labs l WHERE la.lab_id = l.id) AS lab_name, 
 	COUNT(*) OVER(PARTITION BY la.lab_id)  AS count_students,

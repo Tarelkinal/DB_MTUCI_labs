@@ -1,5 +1,6 @@
 SET GLOBAL log_bin_trust_function_creators = 1; -- позволяет создавить функции NOT DETERMINISTIC в mysql 8
 
+-- функция вычисляет дату окончания курса физики данной группы
 DELIMITER //
 CREATE FUNCTION finish_time_obtain_1 (d INT, started_at DATE)
 RETURNS INT DETERMINISTIC
@@ -23,6 +24,7 @@ BEGIN
 	RETURN res;
 END//
 
+-- функция выставляет статус группы - активная/закнчила курс физики
 DELIMITER //
 CREATE FUNCTION group_status_obtain (year_month_started_course INT, year_month_finished_course INT)
 RETURNS CHAR(8) NOT DETERMINISTIC
@@ -32,6 +34,7 @@ BEGIN
 	RETURN res;
 END//
 
+-- функция возращает текущий семест изучения физики группы
 DELIMITER //
 CREATE FUNCTION semestr_num_now_obtain (d INT, started_at DATE)
 RETURNS INT DETERMINISTIC
@@ -57,6 +60,7 @@ BEGIN
 	RETURN res;
 END//
 
+-- функция возращает название семестра в формате осеньXXXX/веснаXXXX
 DELIMITER //
 CREATE FUNCTION semestr_name_now ()
 RETURNS CHAR(9) NOT DETERMINISTIC
@@ -70,6 +74,7 @@ BEGIN
 	RETURN res;
 END//
 
+-- Функция возвращает прошедшее количество учебных недель текущего семестра на данный момент
 DELIMITER //
 CREATE FUNCTION weeks_spend ()
 RETURNS INT NOT DETERMINISTIC
