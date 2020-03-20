@@ -22,7 +22,7 @@ SELECT * FROM students s LIMIT 10;
 CREATE UNIQUE INDEX index_email ON students (email);
 CREATE INDEX index_last_name ON students (last_name);
 
---  Если таблица предполагается небольшой есть ли смысл создавать в ней первичный ключ?
+-- Если таблица предполагается небольшой есть ли смысл создавать в ней первичный ключ?
 
 -- Таблица возможных статусов студента: активен/отчислен/академический отпуск
 CREATE TABLE student_statuses (
@@ -39,10 +39,11 @@ CREATE TABLE labs (
 	id INT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
 	name CHAR(4) UNIQUE,
 	description VARCHAR(255),
-	created_at DATETIME DEFAULT CURRENT_TIMESTAMP, -- здесь и далее лучше использовать тип TIMESTAMP
+	created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 	updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+-- преподаватели кафедры
 CREATE TABLE teachers (
 	id INT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
 	first_name VARCHAR(50) NOT NULL,
@@ -58,12 +59,10 @@ CREATE TABLE `groups` (
 	id INT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
 	name CHAR(7) UNIQUE KEY,
 	specialization_id INT UNSIGNED NOT NULL,
-	resp_student_id INT UNSIGNED NOT NULL,
+	resp_student_id INT UNSIGNED NOT NULL COMMENT 'староста группы',  
 	started_at DATE,
 	FOREIGN KEY (resp_student_id) REFERENCES students (id) ON UPDATE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET=utf8;
-
-SHOW CREATE TABLE `groups`;
 
 ALTER TABLE `groups` 
 ADD FOREIGN KEY (specialization_id)
@@ -73,22 +72,17 @@ ON UPDATE CASCADE;
 CREATE TABLE specializations (
 	id INT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
 	name CHAR(3) UNIQUE NOT NULL,
-	course_duration INT UNSIGNED NOT NULL,
+	course_duration INT UNSIGNED NOT NULL COMMENT 'количество семестров в курсе',
 	started_at_period CHAR(6) NOT NULL COMMENT 'время года, когда у данной специализации начинается курс физики - autumn/spring'
 ) ENGINE = InnoDB DEFAULT CHARSET=utf8;
 
-INSERT INTO specializations VALUES (DEFAULT, 'БУТ', 2, 'spring'), (DEFAULT, 'ЗРС', 3, 'autumn');
-SELECT * FROM specializations s;
-UPDATE specializations SET name =  'БИН' WHERE id = 1;
-SHOW CREATE TABLE specializations;
-SELECT * FROM specializations ;
 
 CREATE TABLE num_labs_spec_per_semesrt (
 	specialization_id INT UNSIGNED NOT NULL,
 	semestr_num INT UNSIGNED NOT NULL,
 	labs_count INT UNSIGNED NOT NULL,
 	PRIMARY KEY (specialization_id, semestr_num)
-) ENGINE = InnoDB DEFAULT CHARSET=utf8;
+) ENGINE = InnoDB DEFAULT CHARSET=utf8 COMMENT 'количество лабораторных работ в семестрах';
 
 ALTER TABLE num_labs_spec_per_semesrt
 ADD FOREIGN KEY (specialization_id) 
@@ -108,6 +102,7 @@ CREATE OR REPLACE VIEW group_live_data AS
 	FROM 
 		`groups` g;
 
+-- таблица связи групп-студентов--учетелей
 DROP TABLE IF EXISTS groups_students_teachers;
 CREATE TABLE groups_students_teachers (
 	teacher_id INT UNSIGNED NOT NULL,
@@ -119,7 +114,10 @@ CREATE TABLE groups_students_teachers (
 	FOREIGN KEY (student_id) REFERENCES students (id) ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+CREATE INDEX teacher_id_group_id ON groups_students_teachers (teacher_id, group_id);
+DROP INDEX teacher_id_group_id ON groups_students_teachers;
 
+-- основная таблица контроля работы
 DROP TABLE IF EXISTS labs_accounting;
 CREATE TABLE labs_accounting (
 	student_id INT UNSIGNED NOT NULL,
@@ -142,12 +140,13 @@ ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 UPDATE labs_accounting SET created_at = DEFAULT;
 UPDATE labs_accounting SET updated_at = DEFAULT;
 
+-- таблица статусов лабораторной работы студента: назначена/получен допуск/выполнена/защищена
 CREATE TABLE labs_statuses (
 	id INT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
 	name VARCHAR(40) NOT NULL
 )	ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
--- работа студентов в текущем семестре
+-- представление в котором проводится оценка текущей успеваемости студентов. alarm_status - индикатор (принимает значения 0/1), если 1 - то студент считается неуспевающим
 CREATE OR REPLACE VIEW students_progress AS 
 	SELECT DISTINCT
 		student_id AS st_id,
