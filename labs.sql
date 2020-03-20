@@ -22,8 +22,6 @@ SELECT * FROM students s LIMIT 10;
 CREATE UNIQUE INDEX index_email ON students (email);
 CREATE INDEX index_last_name ON students (last_name);
 
--- Если таблица предполагается небольшой есть ли смысл создавать в ней первичный ключ?
-
 -- Таблица возможных статусов студента: активен/отчислен/академический отпуск
 CREATE TABLE student_statuses (
 	id INT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
@@ -69,6 +67,7 @@ ADD FOREIGN KEY (specialization_id)
 REFERENCES specializations (id)
 ON UPDATE CASCADE;
 
+-- специализация группы - к ней привязана продолжительность курса физики и когда начало курса: осенью или весной  
 CREATE TABLE specializations (
 	id INT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
 	name CHAR(3) UNIQUE NOT NULL,
@@ -76,7 +75,7 @@ CREATE TABLE specializations (
 	started_at_period CHAR(6) NOT NULL COMMENT 'время года, когда у данной специализации начинается курс физики - autumn/spring'
 ) ENGINE = InnoDB DEFAULT CHARSET=utf8;
 
-
+-- количество лаб. работ для данной специальности по семестрам
 CREATE TABLE num_labs_spec_per_semesrt (
 	specialization_id INT UNSIGNED NOT NULL,
 	semestr_num INT UNSIGNED NOT NULL,
@@ -156,7 +155,7 @@ CREATE OR REPLACE VIEW students_progress AS
 	FROM labs_accounting la JOIN students s ON la.student_id =  s.id 
 	WHERE semestr_name = semestr_name_now () AND s.status_id = 1;
 
--- справочная таблица
+-- справочная таблица - сейчас 14 учебных недель и в первом и во втором семестре
 CREATE TABLE weeks_num_per_semestr (
 	id INT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
 	name CHAR(5) NOT NULL,
