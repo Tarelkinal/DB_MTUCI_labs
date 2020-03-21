@@ -1,3 +1,12 @@
+-- порядок деплоя БД
+-- 1) labs_functions.sql - создание всех функций
+-- 2) labs.sql - создание таблиц и представлений (представления используют функции из labs_functions.sql)
+-- 3) labs_DB_fill.sql - заполнение БД тестовыми данными
+-- 4*) labs_queries.sql - аналитика БД
+
+CREATE DATABASE MTUCI_labs;
+USE MTUCI_labs;
+
 SET GLOBAL log_bin_trust_function_creators = 1; -- позволяет создавить функции NOT DETERMINISTIC в mysql 8
 
 -- функция вычисляет дату окончания курса физики данной группы
@@ -30,7 +39,7 @@ CREATE FUNCTION group_status_obtain (year_month_started_course INT, year_month_f
 RETURNS CHAR(8) NOT DETERMINISTIC
 BEGIN
 	DECLARE res CHAR(8);
-	SET res = IF(DATE_FORMAT(NOW(), '%Y%m') BETWEEN year_month_started AND year_month_finished, 'active', 'finished');
+	SET res = IF(DATE_FORMAT(NOW(), '%Y%m') BETWEEN year_month_started_course AND year_month_finished_course, 'active', 'finished');
 	RETURN res;
 END//
 

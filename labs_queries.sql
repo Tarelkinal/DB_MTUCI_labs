@@ -1,3 +1,11 @@
+-- порядок деплоя БД
+-- 1) labs_functions.sql - создание всех функций
+-- 2) labs.sql - создание таблиц и представлений (представления используют функции из labs_functions.sql)
+-- 3) labs_DB_fill.sql - заполнение БД тестовыми данными
+-- 4*) labs_queries.sql - аналитика БД
+
+USE MTUCI_labs;
+
 -- неуспевающие студенты
 SELECT first_name, second_name, last_name, email, phone
   FROM students s 

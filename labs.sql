@@ -1,9 +1,12 @@
-CREATE DATABASE MTUCI_labs;
+-- порядок деплоя БД
+-- 1) labs_functions.sql - создание всех функций
+-- 2) labs.sql - создание таблиц и представлений (представления используют функции из labs_functions.sql)
+-- 3) labs_DB_fill.sql - заполнение БД тестовыми данными
+-- 4*) labs_queries.sql - аналитика БД
 
 USE MTUCI_labs;
 
 DROP TABLE IF EXISTS students;
-
 CREATE TABLE students (
 	id INT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
 	first_name VARCHAR(50) NOT NULL,
@@ -16,13 +19,11 @@ CREATE TABLE students (
 	updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE = InnoDB DEFAULT CHARSET=utf8;
 
-UPDATE students SET status_id  = 3 WHERE id IN(300, 299, 298, 230, 105);
-SELECT * FROM students s LIMIT 10;
-
 CREATE UNIQUE INDEX index_email ON students (email);
 CREATE INDEX index_last_name ON students (last_name);
 
 -- Таблица возможных статусов студента: активен/отчислен/академический отпуск
+DROP TABLE IF EXISTS student_statuses;
 CREATE TABLE student_statuses (
 	id INT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
 	name VARCHAR(50) NOT NULL
@@ -33,6 +34,7 @@ ADD FOREIGN KEY (status_id)
 REFERENCES student_statuses (id)
 ON UPDATE CASCADE;
 
+DROP TABLE IF EXISTS labs;
 CREATE TABLE labs (
 	id INT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
 	name CHAR(4) UNIQUE,
@@ -42,6 +44,7 @@ CREATE TABLE labs (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- преподаватели кафедры
+DROP TABLE IF EXISTS teachers;
 CREATE TABLE teachers (
 	id INT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
 	first_name VARCHAR(50) NOT NULL,
@@ -53,6 +56,16 @@ CREATE TABLE teachers (
 	updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE = InnoDB DEFAULT CHARSET=utf8;
 
+-- специализация группы - к ней привязана продолжительность курса физики и когда начало курса: осенью или весной  
+DROP TABLE IF EXISTS specializations;
+CREATE TABLE specializations (
+	id INT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
+	name CHAR(3) UNIQUE NOT NULL,
+	course_duration INT UNSIGNED NOT NULL COMMENT 'количество семестров в курсе',
+	started_at_period CHAR(6) NOT NULL COMMENT 'время года, когда у данной специализации начинается курс физики - autumn/spring'
+) ENGINE = InnoDB DEFAULT CHARSET=utf8;
+
+DROP TABLE IF EXISTS `groups`;
 CREATE TABLE `groups` (
 	id INT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
 	name CHAR(7) UNIQUE KEY,
@@ -67,15 +80,8 @@ ADD FOREIGN KEY (specialization_id)
 REFERENCES specializations (id)
 ON UPDATE CASCADE;
 
--- специализация группы - к ней привязана продолжительность курса физики и когда начало курса: осенью или весной  
-CREATE TABLE specializations (
-	id INT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
-	name CHAR(3) UNIQUE NOT NULL,
-	course_duration INT UNSIGNED NOT NULL COMMENT 'количество семестров в курсе',
-	started_at_period CHAR(6) NOT NULL COMMENT 'время года, когда у данной специализации начинается курс физики - autumn/spring'
-) ENGINE = InnoDB DEFAULT CHARSET=utf8;
-
 -- количество лаб. работ для данной специальности по семестрам
+DROP TABLE IF EXISTS num_labs_spec_per_semesrt;
 CREATE TABLE num_labs_spec_per_semesrt (
 	specialization_id INT UNSIGNED NOT NULL,
 	semestr_num INT UNSIGNED NOT NULL,
@@ -100,7 +106,7 @@ CREATE OR REPLACE VIEW group_live_data AS
 		(SELECT labs_count FROM num_labs_spec_per_semesrt nlsps WHERE g.specialization_id = nlsps.specialization_id AND nlsps.semestr_num  = semestr_num_now_obtain((SELECT course_duration FROM specializations s WHERE s.id = g.specialization_id), started_at))AS num_labs_this_semestr
 	FROM 
 		`groups` g;
-
+	
 -- таблица связи групп-студентов--учетелей
 DROP TABLE IF EXISTS groups_students_teachers;
 CREATE TABLE groups_students_teachers (
@@ -113,8 +119,14 @@ CREATE TABLE groups_students_teachers (
 	FOREIGN KEY (student_id) REFERENCES students (id) ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-CREATE INDEX teacher_id_group_id ON groups_students_teachers (teacher_id, group_id);
-DROP INDEX teacher_id_group_id ON groups_students_teachers;
+CREATE INDEX index_teacher_id_group_id ON groups_students_teachers (teacher_id, group_id);
+
+-- таблица статусов лабораторной работы студента: назначена/получен допуск/выполнена/защищена
+DROP TABLE IF EXISTS labs_statuses;
+CREATE TABLE labs_statuses (
+	id INT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
+	name VARCHAR(40) NOT NULL
+)	ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- основная таблица контроля работы
 DROP TABLE IF EXISTS labs_accounting;
@@ -134,16 +146,15 @@ ALTER TABLE labs_accounting
 ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
 ALTER TABLE labs_accounting 
-ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
 
-UPDATE labs_accounting SET created_at = DEFAULT;
-UPDATE labs_accounting SET updated_at = DEFAULT;
-
--- таблица статусов лабораторной работы студента: назначена/получен допуск/выполнена/защищена
-CREATE TABLE labs_statuses (
+-- справочная таблица - сейчас 14 учебных недель и в первом и во втором семестре
+DROP TABLE IF EXISTS weeks_num_per_semestr;
+CREATE TABLE weeks_num_per_semestr (
 	id INT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
-	name VARCHAR(40) NOT NULL
-)	ENGINE=InnoDB DEFAULT CHARSET=utf8;
+	name CHAR(5) NOT NULL,
+	weeks_num INT UNSIGNED NOT NULL
+) ENGINE=Archive DEFAULT CHARSET=utf8;
 
 -- представление в котором проводится оценка текущей успеваемости студентов. alarm_status - индикатор (принимает значения 0/1), если 1 - то студент считается неуспевающим
 CREATE OR REPLACE VIEW students_progress AS 
@@ -154,11 +165,3 @@ CREATE OR REPLACE VIEW students_progress AS
 		IF(SUM(IF(lab_status_id = (SELECT id FROM labs_statuses ls WHERE name = 'защищена'), 1, 0)) OVER(PARTITION BY student_id) < FLOOR(weeks_spend () * (SELECT num_labs_this_semestr FROM group_live_data gld JOIN groups_students_teachers gst ON gld.id = gst.group_id WHERE gst.student_id = st_id) / (SELECT weeks_num FROM weeks_num_per_semestr WHERE name = LEFT(semestr_name_now (), 5))), 1, 0) AS alarm_status -- IF(labs_done < labs_should_be_done_for_this_time, 1, 0)
 	FROM labs_accounting la JOIN students s ON la.student_id =  s.id 
 	WHERE semestr_name = semestr_name_now () AND s.status_id = 1;
-
--- справочная таблица - сейчас 14 учебных недель и в первом и во втором семестре
-CREATE TABLE weeks_num_per_semestr (
-	id INT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
-	name CHAR(5) NOT NULL,
-	weeks_num INT UNSIGNED NOT NULL
-) ENGINE=Archive DEFAULT CHARSET=utf8;
-	
