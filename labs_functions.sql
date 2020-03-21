@@ -7,7 +7,7 @@
 CREATE DATABASE MTUCI_labs;
 USE MTUCI_labs;
 
-SET GLOBAL log_bin_trust_function_creators = 1; -- позволяет создавить функции NOT DETERMINISTIC в mysql 8
+SET GLOBAL log_bin_trust_function_creators = 1; -- позволяет создавать функции NOT DETERMINISTIC в mysql 8
 
 -- функция вычисляет дату окончания курса физики данной группы
 DELIMITER //
